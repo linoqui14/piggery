@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "169152263001",
+    "project_id": "esp32cam-41b21",
+    "storage_bucket": "esp32cam-41b21.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:169152263001:android:6804573d9b75699ba75248",
+        "android_client_info": {
+          "package_name": "com.example.piggery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "169152263001-onacn0lcg0ug2eq36tv62toqs8b78j7a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.piggery",
+            "certificate_hash": "36bdf2a0bcea089dcc206bc06e454628658c1543"
+          }
+        },
+        {
+          "client_id": "169152263001-cdu2ts600cu255tdn4mcrqe6812mjiat.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBM9nMIof1g1eoChyz2csZ9DsuSHztqNgM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "169152263001-cdu2ts600cu255tdn4mcrqe6812mjiat.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
