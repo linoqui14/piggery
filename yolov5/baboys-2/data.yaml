@@ -1,0 +1,13 @@
+names:
+- '1'
+- '2'
+- '3'
+- '4'
+- '5'
+- '6'
+- '7'
+- '8'
+- N-A
+nc: 9
+train: baboys-2/train/images
+val: baboys-2/valid/images
