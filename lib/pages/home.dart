@@ -10,11 +10,11 @@ import 'package:piggery/custom_widgets/custom_textbutton.dart';
 import 'package:piggery/transactions/commands.dart';
 import 'package:piggery/transactions/controller.dart';
 import 'package:intl/intl.dart';
+import 'package:process_run/shell.dart';
 import '../main.dart';
 import '../tools/variables.dart';
 import '../transactions/baboyan.dart';
-import 'package:learning_text_recognition/learning_text_recognition.dart';
-import 'package:file_saver/file_saver.dart';
+import 'package:process_run/process_run.dart';
 
 
 
@@ -36,15 +36,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    storage.ref('/').list().then((value) {
-      value.items.forEach((element) { 
-        element.getDownloadURL().then((url) {
-          Tools.downloadFile(url, element.name).then((path) {
-            print(path.path);
-          });
-        });
-      });
-    });
+    // storage.ref('/').list().then((value) {
+    //   value.items.forEach((element) {
+    //     element.getDownloadURL().then((url) {
+    //       Tools.downloadFile(url, element.name).then((path) {
+    //         print(path.path);
+    //       });
+    //     });
+    //   });
+    // });
     super.initState();
   }
   @override
@@ -96,59 +96,60 @@ class _MyHomePageState extends State<MyHomePage> {
                                   });
                                   return Column(
                                     children: [
-                                      Expanded(
-                                        child: FutureBuilder<String>(
-                                            future: snapshot.data!.items.last.getDownloadURL(),
-                                            builder:(context,snapshot){
+                                      FutureBuilder<String>(
+                                          future: snapshot.data!.items.last.getDownloadURL(),
+                                          builder:(context,snapshot){
 
-                                              if(!snapshot.hasData) {
-                                                return Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: const [
-                                                    Text("Loading image..."),
-                                                    Padding(padding: EdgeInsets.all(5)),
-                                                    CircularProgressIndicator()
-                                                  ],
-                                                );
-                                              }
-                                              if(oldImageURL!=snapshot.data!){
-                                                currentImageURL = snapshot.data!;
-                                                oldImageURL =  snapshot.data!;
-                                              }
-                                              String imageId = currentImageURL.split('/')[7].split('?')[0].split('.')[0];
-
+                                            if(!snapshot.hasData) {
                                               return Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
-
-                                                children: [
-                                                  if(command.command.contains('capture'))
-                                                    Text(command.command.split('-')[1],style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 30),),
-                                                  FutureBuilder(
-                                                    future:BaboyanController.get(imageId),
-                                                    builder: (context, snapshot) {
-                                                      if(!snapshot.hasData)return Center();
-                                                      Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
-
-                                                      return Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300),),
-                                                          Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold),),
-                                                        ],
-                                                      );
-                                                    },
-                                                  ),
-                                                  Image.network(currentImageURL),
+                                                children: const [
+                                                  Text("Loading image..."),
+                                                  Padding(padding: EdgeInsets.all(5)),
+                                                  CircularProgressIndicator()
                                                 ],
                                               );
                                             }
-                                        ),
+                                            if(oldImageURL!=snapshot.data!){
+                                              currentImageURL = snapshot.data!;
+                                              oldImageURL =  snapshot.data!;
+                                            }
+                                            String imageId = currentImageURL.split('/')[7].split('?')[0].split('.')[0];
+
+                                            return Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+
+                                              children: [
+                                                if(command.command.contains('capture'))
+                                                  Text(command.command.split('-')[1],style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 30),),
+                                                FutureBuilder(
+                                                  future:BaboyanController.get(imageId),
+                                                  builder: (context, snapshot) {
+                                                    if(!snapshot.hasData)return Center();
+                                                    Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+
+                                                    return Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300),),
+                                                        Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold),),
+                                                      ],
+                                                    );
+                                                  },
+                                                ),
+                                                SizedBox(
+                                                    height: MediaQuery. of(context). size. height*0.8,
+                                                    child: Image.network(currentImageURL,fit: BoxFit.fitHeight,)
+                                                ),
+                                              ],
+                                            );
+                                          }
                                       ),
                                       CarouselSlider(
                                         options: CarouselOptions(
                                             enableInfiniteScroll: false,
                                             viewportFraction: 0.1,
-                                            height: 210.0,
+                                            height: MediaQuery. of(context). size. height*0.15,
                                             aspectRatio: 0
                                         ),
                                         items: snapshot.data!.items.map((i) {
@@ -175,38 +176,48 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
 
-                                                  IconButton(
-                                                    padding: EdgeInsets.zero,
+                                                   GestureDetector(
+                                                        onTap: (){
+                                                          setState(() {
+                                                            currentImageURL = snapshot.data!;
+                                                            var shell = Shell();
+                                                            shell.run('''
+                                                            cd yolov5
+                                                            python yolov5/detect.py --weights yolov5/runs/train/yolov5s_results3/weights/best.pt --img 416 --conf 0.4 --source $currentImageURL --name results
+                                                            ''').then((value) {
+                                                              print(value.outText);
+                                                              shell.kill();
+                                                            });
 
-                                                      hoverColor: Colors.transparent,
-                                                      splashColor: Colors.transparent,
-                                                      iconSize: 150,
-                                                      onPressed: (){
-                                                        setState(() {
-                                                          currentImageURL = snapshot.data!;
-                                                        });
+                                                          });
+                                                        },
+                                                       child: Column(
+                                                         children: [
+                                                           SizedBox(
+                                                             height:30,
+                                                             child: FutureBuilder(
+                                                               future:BaboyanController.get(i.name.split('.')[0]),
+                                                               builder: (context, snapshot) {
+                                                                 if(!snapshot.hasData)return Center();
+                                                                 Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
 
-                                                      },
-                                                      icon: Image.network(snapshot.data!,height: 150,)
-                                                  ),
-                                                  SizedBox(
-                                                    height:40,
-                                                    child: FutureBuilder(
-                                                      future:BaboyanController.get(i.name.split('.')[0]),
-                                                      builder: (context, snapshot) {
-                                                        if(!snapshot.hasData)return Center();
-                                                        Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+                                                                 return Column(
+                                                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                                                   children: [
+                                                                     Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300,fontSize: 12),),
+                                                                     Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 10),),
+                                                                   ],
+                                                                 );
+                                                               },
+                                                             ),
+                                                           ),
+                                                           Image.network(snapshot.data!,height:90,),
+                                                         ],
+                                                       )
+                                                   )
 
-                                                        return Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300),),
-                                                            Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold),),
-                                                          ],
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
+
+
                                                 ],
                                               );
                                             },
