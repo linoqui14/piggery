@@ -5,6 +5,7 @@ import 'package:firebase_dart/firebase_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:piggery/custom_widgets/custom_texfield.dart';
 import 'package:piggery/custom_widgets/custom_textbutton.dart';
 import 'package:piggery/transactions/commands.dart';
@@ -33,7 +34,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String currentImageURL = "";
   String oldImageURL = "";
   bool canStream = true;
-
+  bool isLoading = false;
+  File? currentSelectedImageFile;
   @override
   void initState() {
     // storage.ref('/').list().then((value) {
@@ -100,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           future: snapshot.data!.items.last.getDownloadURL(),
                                           builder:(context,snapshot){
 
-                                            if(!snapshot.hasData) {
+                                            if(!snapshot.hasData||isLoading) {
                                               return Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: const [
@@ -127,7 +129,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                                   builder: (context, snapshot) {
                                                     if(!snapshot.hasData)return Center();
                                                     Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+                                                    if(currentSelectedImageFile!=null){
+                                                      // print("yesssssss");
 
+                                                    }
                                                     return Column(
                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
@@ -139,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 ),
                                                 SizedBox(
                                                     height: MediaQuery. of(context). size. height*0.8,
-                                                    child: Image.network(currentImageURL,fit: BoxFit.fitHeight,)
+                                                    child: currentSelectedImageFile!=null?Image.file(currentSelectedImageFile!):Image.network(currentImageURL,fit: BoxFit.fitHeight,)
                                                 ),
                                               ],
                                             );
@@ -147,6 +152,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       ),
                                       CarouselSlider(
                                         options: CarouselOptions(
+                                            // enlargeCenterPage: true,
                                             enableInfiniteScroll: false,
                                             viewportFraction: 0.1,
                                             height: MediaQuery. of(context). size. height*0.15,
@@ -176,45 +182,51 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
 
-                                                   GestureDetector(
-                                                        onTap: (){
-                                                          setState(() {
-                                                            currentImageURL = snapshot.data!;
+                                                  GestureDetector(
+                                                      onTap: (){
+                                                        setState(() {
+                                                          isLoading = true;
+                                                          currentImageURL = snapshot.data!;
+                                                          getApplicationDocumentsDirectory().then((path) {
                                                             var shell = Shell();
-                                                            shell.run('''
-                                                            cd yolov5
-                                                            python yolov5/detect.py --weights yolov5/runs/train/yolov5s_results3/weights/best.pt --img 416 --conf 0.4 --source $currentImageURL --name results
-                                                            ''').then((value) {
+                                                            shell.run('python yolov5/detect.py --weights yolov5/runs/train/yolov5s_results3/weights/best.pt --img 416 --conf 0.4 --save-crop --hide-conf --source  $currentImageURL --name '+path.path+"\\result"
+                                                            ).then((value) {
                                                               print(value.outText);
+                                                              print(i.name);
+                                                              setState(() {
+                                                                currentSelectedImageFile = File(path.path+"\\result\\"+i.name);
+                                                                isLoading = false;
+                                                              });
                                                               shell.kill();
                                                             });
-
+                                                            // file.exists().then((value) => print(value));
                                                           });
-                                                        },
-                                                       child: Column(
-                                                         children: [
-                                                           SizedBox(
-                                                             height:30,
-                                                             child: FutureBuilder(
-                                                               future:BaboyanController.get(i.name.split('.')[0]),
-                                                               builder: (context, snapshot) {
-                                                                 if(!snapshot.hasData)return Center();
-                                                                 Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+                                                        });
+                                                      },
+                                                      child: Column(
+                                                        children: [
+                                                          SizedBox(
+                                                            height:30,
+                                                            child: FutureBuilder(
+                                                              future:BaboyanController.get(i.name.split('.')[0]),
+                                                              builder: (context, snapshot) {
+                                                                if(!snapshot.hasData)return Center();
+                                                                Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
 
-                                                                 return Column(
-                                                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                                                   children: [
-                                                                     Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300,fontSize: 12),),
-                                                                     Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 10),),
-                                                                   ],
-                                                                 );
-                                                               },
-                                                             ),
-                                                           ),
-                                                           Image.network(snapshot.data!,height:90,),
-                                                         ],
-                                                       )
-                                                   )
+                                                                return Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  children: [
+                                                                    Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300,fontSize: 12),),
+                                                                    Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 10),),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                          Image.network(snapshot.data!,height:90,),
+                                                        ],
+                                                      )
+                                                  )
 
 
 
@@ -293,5 +305,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         )
     );
+  }
+  Directory findRoot(FileSystemEntity entity) {
+    final Directory parent = entity.parent;
+    if (parent.path == entity.path) return parent;
+    return findRoot(parent);
   }
 }
