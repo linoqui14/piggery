@@ -31,11 +31,17 @@ class _MyHomePageState extends State<MyHomePage> {
   int test = 0;
   var storage = FirebaseStorage.instanceFor(app: app);
   TextEditingController count = TextEditingController(text: '0');
+  TextEditingController area = TextEditingController(text: "0");
+  TextEditingController id = TextEditingController(text: "N/A");
   String currentImageURL = "";
   String oldImageURL = "";
   bool canStream = true;
   bool isLoading = false;
   File? currentSelectedImageFile;
+  File? currentSelectedPigFile;
+  List<File> standings = [],laying = [];
+  String currentLoadingMessage = "";
+  String currentSelectedLoadingMessage = "";
   @override
   void initState() {
     // storage.ref('/').list().then((value) {
@@ -49,6 +55,36 @@ class _MyHomePageState extends State<MyHomePage> {
     // });
     super.initState();
   }
+  void analyzePig(File i){
+    setState(() {
+      currentSelectedLoadingMessage = "Analyzing pig...";
+      this.area.text = "0";
+      var shell = Shell();
+      shell.run("python yolov5/area.py --source "+i.path).then((value) {
+        double area = double.parse(value.outText);
+        setState(() {
+          String path = i.parent.parent.path+"\\selectedpigs\\";
+          String name = i.path.split("\\").last;
+
+
+          shell.run('python yolov5/detect.py --weights yolov5/id.pt --img 360 --conf 0.4  --hide-conf --source '+i.path+' --name '+path).then((id) {
+
+            shell.kill();
+            setState(() {
+              currentSelectedLoadingMessage = i.path.split("\\").last.split(".")[0];
+              currentSelectedPigFile = File(path+"\\"+name);
+              this.area.text = area.toString();
+              this.id.text = id.outText;
+            });
+          });
+        });
+      });
+
+      currentSelectedPigFile = i;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,10 +141,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                             if(!snapshot.hasData||isLoading) {
                                               return Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
-                                                children: const [
-                                                  Text("Loading image..."),
-                                                  Padding(padding: EdgeInsets.all(5)),
-                                                  CircularProgressIndicator()
+                                                children: [
+                                                  Text(currentLoadingMessage),
+                                                  const Padding(padding: EdgeInsets.all(5)),
+                                                  const CircularProgressIndicator()
                                                 ],
                                               );
                                             }
@@ -124,117 +160,307 @@ class _MyHomePageState extends State<MyHomePage> {
                                               children: [
                                                 if(command.command.contains('capture'))
                                                   Text(command.command.split('-')[1],style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 30),),
-                                                FutureBuilder(
-                                                  future:BaboyanController.get(imageId),
-                                                  builder: (context, snapshot) {
-                                                    if(!snapshot.hasData)return Center();
-                                                    Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
-                                                    if(currentSelectedImageFile!=null){
-                                                      // print("yesssssss");
 
-                                                    }
-                                                    return Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisAlignment:MainAxisAlignment.spaceEvenly,
+                                                  children: [
+
+                                                    Column(
                                                       children: [
-                                                        Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300),),
-                                                        Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold),),
+                                                        FutureBuilder(
+                                                          future:BaboyanController.get(imageId),
+                                                          builder: (context, snapshot) {
+                                                            if(!snapshot.hasData)return Center();
+                                                            Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+                                                            if(currentSelectedImageFile!=null){
+                                                              // print("yesssssss");
+
+                                                            }
+                                                            return Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300),),
+                                                                Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold),),
+                                                              ],
+                                                            );
+                                                          },
+                                                        ),
+                                                        if(currentSelectedPigFile!=null)
+                                                          SizedBox(
+                                                              height: MediaQuery. of(context). size. height*0.55,
+                                                              child: currentSelectedImageFile!=null?Image.file(currentSelectedImageFile!):Image.network(currentImageURL,fit: BoxFit.fitHeight,)
+                                                          ),
                                                       ],
-                                                    );
-                                                  },
+                                                    ),
+                                                    // if(laying.isNotEmpty&&standings.isNotEmpty)
+                                                    Column(
+                                                      children: [
+                                                        Text("Selected Pig",style: GoogleFonts.exo(fontWeight: FontWeight.w300)),
+                                                        Text(currentSelectedLoadingMessage,style: GoogleFonts.exo(fontWeight: FontWeight.bold)),
+                                                        if(currentSelectedPigFile!=null)
+                                                          SizedBox(
+                                                              width:300,
+                                                              child: Image.file(currentSelectedPigFile!,height: 300,fit: BoxFit.contain,)
+                                                          ),
+                                                        Padding(
+                                                          padding: const EdgeInsets.symmetric(vertical: 5),
+                                                          child: Row(
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                            children: [
+                                                              SizedBox(
+                                                                height:50,
+                                                                width:140,
+                                                                child: CustomTextField(
+                                                                    color: Colors.black54,
+                                                                    hint: "Area", padding: EdgeInsets.zero, controller: area
+                                                                ),
+
+                                                              ),
+                                                              Padding(padding: EdgeInsets.symmetric(horizontal: 10)),
+                                                              SizedBox(
+                                                                height:50,
+                                                                width:140,
+                                                                child: CustomTextField(
+                                                                    color: Colors.black54,
+                                                                    hint: "ID", padding: EdgeInsets.zero, controller: id
+                                                                ),
+
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ],
                                                 ),
-                                                SizedBox(
-                                                    height: MediaQuery. of(context). size. height*0.8,
-                                                    child: currentSelectedImageFile!=null?Image.file(currentSelectedImageFile!):Image.network(currentImageURL,fit: BoxFit.fitHeight,)
-                                                ),
+
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Divider(),
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                      children: [
+                                                        // Text("  Pigs",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                                        Text("  Laying",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                                        Text("  Standing",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                                      ],
+                                                    ),
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: CarouselSlider(
+                                                            options: CarouselOptions(
+                                                              // enlargeCenterPage: true,
+                                                                enableInfiniteScroll: false,
+                                                                viewportFraction: 0.1,
+                                                                height: MediaQuery. of(context). size. height*0.15,
+                                                                aspectRatio: 0
+                                                            ),
+                                                            items: laying.map((i) {
+                                                              return Column(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                  GestureDetector(
+                                                                      onTap: (){
+                                                                        analyzePig(i);
+                                                                      },
+                                                                      child: SizedBox(
+                                                                          child: Image.file(i,height:90,)
+                                                                      )
+                                                                  )
+                                                                ],
+                                                              );
+                                                            }).toList(),
+                                                          ),
+                                                        ),
+                                                        Container(
+                                                          color: Colors.black54,
+                                                          child: SizedBox(
+                                                            width: 2,
+                                                            height:100,
+                                                            child: Center(),
+                                                          ),
+                                                        ),
+                                                        Expanded(
+                                                          child: CarouselSlider(
+                                                            options: CarouselOptions(
+                                                              // enlargeCenterPage: true,
+                                                                enableInfiniteScroll: false,
+                                                                viewportFraction: 0.1,
+                                                                height: MediaQuery. of(context). size. height*0.15,
+                                                                aspectRatio: 0
+                                                            ),
+                                                            items: standings.map((i) {
+
+                                                              return Column(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+
+                                                                  GestureDetector(
+                                                                      onTap: (){
+                                                                        analyzePig(i);
+                                                                      },
+                                                                      child: Column(
+                                                                        children: [
+
+                                                                          Image.file(i,height:90,),
+                                                                        ],
+                                                                      )
+                                                                  )
+
+
+
+                                                                ],
+                                                              );
+
+
+                                                            }).toList(),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                )
                                               ],
                                             );
                                           }
                                       ),
-                                      CarouselSlider(
-                                        options: CarouselOptions(
-                                            // enlargeCenterPage: true,
-                                            enableInfiniteScroll: false,
-                                            viewportFraction: 0.1,
-                                            height: MediaQuery. of(context). size. height*0.15,
-                                            aspectRatio: 0
-                                        ),
-                                        items: snapshot.data!.items.map((i) {
 
-                                          return FutureBuilder<String>(
-                                            future: i.getDownloadURL(),
-                                            builder: (context,snapshot) {
-                                              if(!snapshot.hasData) {
-                                                return Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: const [
-                                                    Text("Loading image..."),
-                                                    Padding(padding: EdgeInsets.all(5)),
-                                                    CircularProgressIndicator()
-                                                  ],
-                                                );
-                                              }
-                                              // File? image = NetworkToFileImage(
-                                              //     url: snapshot.data
-                                              // ).file;
-                                              // print(image);
 
-                                              return Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Divider(),
+                                          Text("  Images",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                          CarouselSlider(
+                                            options: CarouselOptions(
+                                              // enlargeCenterPage: true,
+                                                enableInfiniteScroll: false,
+                                                viewportFraction: 0.1,
+                                                height: MediaQuery. of(context). size. height*0.15,
+                                                aspectRatio: 0
+                                            ),
+                                            items: snapshot.data!.items.map((i) {
 
-                                                  GestureDetector(
-                                                      onTap: (){
-                                                        setState(() {
-                                                          isLoading = true;
-                                                          currentImageURL = snapshot.data!;
-                                                          getApplicationDocumentsDirectory().then((path) {
-                                                            var shell = Shell();
-                                                            shell.run('python yolov5/detect.py --weights yolov5/runs/train/yolov5s_results3/weights/best.pt --img 416 --conf 0.4 --save-crop --hide-conf --source  $currentImageURL --name '+path.path+"\\result"
-                                                            ).then((value) {
-                                                              print(value.outText);
-                                                              print(i.name);
-                                                              setState(() {
-                                                                currentSelectedImageFile = File(path.path+"\\result\\"+i.name);
-                                                                isLoading = false;
+                                              return FutureBuilder<String>(
+                                                future: i.getDownloadURL(),
+                                                builder: (context,snapshot) {
+                                                  if(!snapshot.hasData) {
+                                                    return Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: const [
+                                                        Text("Loading image......."),
+                                                        Padding(padding: EdgeInsets.all(5)),
+                                                        CircularProgressIndicator()
+                                                      ],
+                                                    );
+                                                  }
+                                                  // File? image = NetworkToFileImage(
+                                                  //     url: snapshot.data
+                                                  // ).file;
+                                                  // print(image);
+
+                                                  return Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+
+                                                      GestureDetector(
+                                                          onTap: (){
+                                                            setState(() {
+                                                              isLoading = true;
+                                                              currentImageURL = snapshot.data!;
+                                                              getApplicationDocumentsDirectory().then((path) {
+                                                                var shell = Shell();
+                                                                setState(() {
+                                                                  currentLoadingMessage = "Detecting pigs...";
+                                                                });
+                                                                shell.run('python yolov5/detect.py --weights yolov5/body.pt --img 416 --conf 0.4 --overwrite --save-crop --hide-conf --source  $currentImageURL --name '+path.path+"\\result"
+                                                                ).then((value) {
+                                                                  shell.kill();
+                                                                  currentSelectedImageFile = File(path.path+"\\result\\"+i.name);
+                                                                  currentSelectedImageFile!.exists().then((ex)
+                                                                  {
+                                                                    setState(() {
+                                                                      standings.clear();
+                                                                      laying.clear();
+                                                                      currentLoadingMessage = "Identifying ID's...";
+                                                                    });
+                                                                    shell.run('python yolov5/detect.py --weights yolov5/id.pt --img 416 --conf 0.4 --save-crop --save-txt --hide-conf --source '+currentSelectedImageFile!.path+' --name '+path.path+"\\result").then((value) {
+                                                                      setState(() {
+                                                                        currentSelectedImageFile = File(path.path+"\\result\\"+i.name);
+                                                                        List<FileSystemEntity> filesStanding = [];
+                                                                        List<FileSystemEntity> filesLaying = [];
+                                                                        try{
+                                                                          filesLaying = Directory(path.path+"\\result\\crops\\laying").listSync();
+                                                                          filesLaying.forEach((element) {
+                                                                            laying.add(File(element.path));
+                                                                          });
+                                                                          currentSelectedPigFile = laying.first;
+                                                                        }catch(r){
+
+                                                                        }
+                                                                        try{
+                                                                          filesStanding = Directory(path.path+"\\result\\crops\\standing").listSync();
+                                                                          filesStanding.forEach((element) {
+                                                                            standings.add(File(element.path));
+                                                                          });
+                                                                          currentSelectedPigFile = currentSelectedPigFile==null?laying.first:currentSelectedPigFile;
+                                                                        }catch(r){
+
+                                                                        }
+
+
+
+                                                                        isLoading = false;
+
+                                                                      });
+                                                                      shell.kill();
+                                                                    });
+                                                                  });
+
+
+                                                                });
+                                                                // file.exists().then((value) => print(value));
                                                               });
-                                                              shell.kill();
                                                             });
-                                                            // file.exists().then((value) => print(value));
-                                                          });
-                                                        });
-                                                      },
-                                                      child: Column(
-                                                        children: [
-                                                          SizedBox(
-                                                            height:30,
-                                                            child: FutureBuilder(
-                                                              future:BaboyanController.get(i.name.split('.')[0]),
-                                                              builder: (context, snapshot) {
-                                                                if(!snapshot.hasData)return Center();
-                                                                Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
+                                                          },
+                                                          child: Column(
+                                                            children: [
+                                                              SizedBox(
+                                                                height:29,
+                                                                child: FutureBuilder(
+                                                                  future:BaboyanController.get(i.name.split('.')[0]),
+                                                                  builder: (context, snapshot) {
+                                                                    if(!snapshot.hasData)return Center();
+                                                                    Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
 
-                                                                return Column(
-                                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                                  children: [
-                                                                    Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300,fontSize: 12),),
-                                                                    Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 10),),
-                                                                  ],
-                                                                );
-                                                              },
-                                                            ),
-                                                          ),
-                                                          Image.network(snapshot.data!,height:90,),
-                                                        ],
+                                                                    return Column(
+                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                      children: [
+                                                                        Text(baboyan.id,style: GoogleFonts.exo(fontWeight: FontWeight.w300,fontSize: 12),),
+                                                                        Text(DateFormat.yMMMMd().add_jm().format(DateTime.fromMillisecondsSinceEpoch(baboyan.time)),style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 10),),
+                                                                      ],
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                              Image.network(snapshot.data!,height:90,),
+                                                            ],
+                                                          )
                                                       )
-                                                  )
 
 
 
-                                                ],
+                                                    ],
+                                                  );
+                                                },
                                               );
-                                            },
-                                          );
-                                        }).toList(),
+                                            }).toList(),
+                                          ),
+                                        ],
                                       )
                                     ],
                                   );
