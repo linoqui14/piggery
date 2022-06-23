@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_dart/firebase_dart.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ import '../main.dart';
 import '../tools/variables.dart';
 import '../transactions/baboyan.dart';
 import 'package:process_run/process_run.dart';
-
+import 'dart:core';
 
 
 class MyHomePage extends StatefulWidget {
@@ -33,6 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   TextEditingController count = TextEditingController(text: '0');
   TextEditingController area = TextEditingController(text: "0");
   TextEditingController id = TextEditingController(text: "N/A");
+  TextEditingController weight = TextEditingController(text: "N/A");
   String currentImageURL = "";
   String oldImageURL = "";
   bool canStream = true;
@@ -42,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<File> standings = [],laying = [];
   String currentLoadingMessage = "";
   String currentSelectedLoadingMessage = "";
+
   @override
   void initState() {
     // storage.ref('/').list().then((value) {
@@ -59,24 +62,32 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       currentSelectedLoadingMessage = "Analyzing pig...";
       this.area.text = "0";
+      this.id.text = "N/A";
       var shell = Shell();
       shell.run("python yolov5/area.py --source "+i.path).then((value) {
         double area = double.parse(value.outText);
         setState(() {
-          String path = i.parent.parent.path+"\\selectedpigs\\";
+
           String name = i.path.split("\\").last;
-
-
-          shell.run('python yolov5/detect.py --weights yolov5/id.pt --img 360 --conf 0.4  --hide-conf --source '+i.path+' --name '+path).then((id) {
-
-            shell.kill();
-            setState(() {
-              currentSelectedLoadingMessage = i.path.split("\\").last.split(".")[0];
-              currentSelectedPigFile = File(path+"\\"+name);
+          Directory(i.parent.parent.path+"\\selectedpigs\\"+name.split(".")[0]+"-"+Random().nextInt(10).toString()).create(recursive: true).then((createPath) {
+            shell.run('python yolov5/detect.py --weights yolov5/id.pt --img 360 --conf 0.6  --hide-conf --source '+i.path+' --name '+createPath.path).then((id) {
+              shell.kill();
               this.area.text = area.toString();
-              this.id.text = id.outText;
+              shell.run('python yolov5/weight_predict.py --area '+double.parse(this.area.text).toString()).then((weight_value) {
+                print(weight_value.outText);
+                setState((){
+                  currentSelectedLoadingMessage = i.path.split("\\").last.split(".")[0];
+                  currentSelectedPigFile = File(createPath.path+"\\"+name);
+
+                  this.id.text = id.outText.split('\n').last;
+                  this.weight.text = double.parse((weight_value.outText)).toStringAsPrecision(3);
+                });
+
+              });
+
             });
           });
+
         });
       });
 
@@ -105,7 +116,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           );
                         }
                         Command command = Command.toObject((snapshot.data!.snapshot.value as Map<String,dynamic>));
-
                         return Container(
                             alignment: Alignment.center,
                             height: double.infinity,
@@ -137,7 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                       FutureBuilder<String>(
                                           future: snapshot.data!.items.last.getDownloadURL(),
                                           builder:(context,snapshot){
-
                                             if(!snapshot.hasData||isLoading) {
                                               return Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -153,15 +162,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                               oldImageURL =  snapshot.data!;
                                             }
                                             String imageId = currentImageURL.split('/')[7].split('?')[0].split('.')[0];
-
                                             return Column(
                                               mainAxisAlignment: MainAxisAlignment.center,
 
                                               children: [
                                                 if(command.command.contains('capture'))
                                                   Text(command.command.split('-')[1],style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 30),),
-
-
                                                 Row(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   mainAxisAlignment:MainAxisAlignment.spaceEvenly,
@@ -176,7 +182,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                             Baboyan baboyan = Baboyan.toObject((snapshot.data as Map<String,dynamic> ));
                                                             if(currentSelectedImageFile!=null){
                                                               // print("yesssssss");
-
                                                             }
                                                             return Column(
                                                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,6 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     ),
                                                     // if(laying.isNotEmpty&&standings.isNotEmpty)
                                                     Column(
+                                                      // crossAxisAlignment: CrossAxisAlignment.start,
                                                       children: [
                                                         Text("Selected Pig",style: GoogleFonts.exo(fontWeight: FontWeight.w300)),
                                                         Text(currentSelectedLoadingMessage,style: GoogleFonts.exo(fontWeight: FontWeight.bold)),
@@ -204,6 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                               width:300,
                                                               child: Image.file(currentSelectedPigFile!,height: 300,fit: BoxFit.contain,)
                                                           ),
+
                                                         Padding(
                                                           padding: const EdgeInsets.symmetric(vertical: 5),
                                                           child: Row(
@@ -213,6 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 height:50,
                                                                 width:140,
                                                                 child: CustomTextField(
+                                                                    readonly: true,
                                                                     color: Colors.black54,
                                                                     hint: "Area", padding: EdgeInsets.zero, controller: area
                                                                 ),
@@ -226,8 +234,36 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                     color: Colors.black54,
                                                                     hint: "ID", padding: EdgeInsets.zero, controller: id
                                                                 ),
-
                                                               ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        Padding(
+                                                          padding: const EdgeInsets.symmetric(vertical: 5),
+                                                          child: Row(
+                                                            mainAxisAlignment: MainAxisAlignment.start,
+                                                            children: [
+                                                              SizedBox(
+                                                                height:50,
+                                                                width:140,
+                                                                child: CustomTextField(
+                                                                    // readonly: true,
+                                                                    color: Colors.black54,
+                                                                    hint: "Predicted Weight", padding: EdgeInsets.zero, controller: weight
+                                                                ),
+                                                              ),
+                                                              Padding(padding: EdgeInsets.symmetric(horizontal: 10)),
+                                                              CustomTextButton(
+                                                                height: 50,
+                                                                width: 125,
+                                                                color: Colors.indigoAccent,
+                                                                text: "Save",
+                                                                onPressed: (){
+                                                                  print(id.text);
+                                                                  print(area.text);
+                                                                  print(weight.text);
+                                                                },
+                                                              )
                                                             ],
                                                           ),
                                                         )

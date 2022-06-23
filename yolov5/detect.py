@@ -95,6 +95,7 @@ def run(
     if os.path.exists(save_dir) and overwrite:
         shutil.rmtree(save_dir)
     (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=False, exist_ok=True)  # make dir
+    
 
     # Load model
     device = select_device(device)
