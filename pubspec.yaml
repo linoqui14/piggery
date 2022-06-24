@@ -40,6 +40,8 @@ dependencies:
   process_run: ^0.12.3+2
   intl: ^0.17.0
   path_provider: ^2.0.11
+  alert_dialog: ^1.0.1
+  data_tables: ^1.4.0
 
 
 

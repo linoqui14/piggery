@@ -8,6 +8,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.3"
+  alert_dialog:
+    dependency: "direct main"
+    description:
+      name: alert_dialog
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
   args:
     dependency: transitive
     description:
@@ -99,6 +106,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.5"
+  data_tables:
+    dependency: "direct main"
+    description:
+      name: data_tables
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.4.0"
   expressions:
     dependency: transitive
     description:

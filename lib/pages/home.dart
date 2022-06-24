@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:alert_dialog/alert_dialog.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_dart/firebase_dart.dart';
 import 'package:flutter/material.dart';
@@ -9,20 +10,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:piggery/custom_widgets/custom_texfield.dart';
 import 'package:piggery/custom_widgets/custom_textbutton.dart';
+import 'package:piggery/pages/records.dart';
 import 'package:piggery/transactions/commands.dart';
 import 'package:piggery/transactions/controller.dart';
 import 'package:intl/intl.dart';
 import 'package:process_run/shell.dart';
 import '../main.dart';
 import '../tools/variables.dart';
+import '../transactions/baboy.dart';
 import '../transactions/baboyan.dart';
 import 'package:process_run/process_run.dart';
 import 'dart:core';
 
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-  final String title;
+  const MyHomePage({Key? key}) : super(key: key);
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
@@ -78,7 +80,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 setState((){
                   currentSelectedLoadingMessage = i.path.split("\\").last.split(".")[0];
                   currentSelectedPigFile = File(createPath.path+"\\"+name);
-
                   this.id.text = id.outText.split('\n').last;
                   this.weight.text = double.parse((weight_value.outText)).toStringAsPrecision(3);
                 });
@@ -247,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 height:50,
                                                                 width:140,
                                                                 child: CustomTextField(
-                                                                    // readonly: true,
+                                                                  // readonly: true,
                                                                     color: Colors.black54,
                                                                     hint: "Predicted Weight", padding: EdgeInsets.zero, controller: weight
                                                                 ),
@@ -259,9 +260,55 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 color: Colors.indigoAccent,
                                                                 text: "Save",
                                                                 onPressed: (){
-                                                                  print(id.text);
-                                                                  print(area.text);
-                                                                  print(weight.text);
+                                                                  if(id.text.isEmpty){
+                                                                  alert(context, title: Text('Sorrr!'),content: Text("I cannot give you predection for pig's id.\nPlease you may provide your own best judgment."));
+                                                                  }
+                                                                  else{
+                                                                    alert(context,title: Text('Click OK to continue!')).then((value) {
+                                                                      BaboyController.get(id.text).then((value) {
+                                                                        if(value==null){
+                                                                          Baboy baboy = Baboy(id: id.text,weight: [double.parse(weight.text)],area: [double.parse(area.text)],date: [DateTime.now().millisecondsSinceEpoch]);
+                                                                          BaboyController.set(baboy);
+
+                                                                        }
+                                                                        else if(id.text.isNotEmpty){
+                                                                          List<double> tempWeight = [];
+                                                                          List<double> tempArea = [];
+                                                                          List<int> tempDate = [];
+                                                                          Map<String,dynamic> data = (value as Map<String,dynamic>);
+                                                                          var dataWeight =  Map<String, dynamic>.from(data['weight']);
+                                                                          var dataArea =  Map<String, dynamic>.from(data['area']);
+                                                                          var dataDate =  Map<String, dynamic>.from(data['date']);
+                                                                          dataWeight.values.forEach((element) {
+                                                                            tempWeight.add(element);
+                                                                          });
+                                                                          dataArea.values.forEach((element) {
+                                                                            tempArea.add(element);
+                                                                          });
+                                                                          dataDate.values.forEach((element) {
+                                                                            tempDate.add(element);
+                                                                          });
+                                                                          if(tempArea.contains(double.parse(area.text))){
+                                                                            print("Already Recorded");
+                                                                            alert(context, title: Text('Already Recorded!'));
+                                                                            return;
+                                                                          }
+                                                                          tempWeight.add(double.parse(weight.text));
+                                                                          tempArea.add(double.parse(area.text));
+                                                                          tempDate.add(DateTime.now().millisecondsSinceEpoch);
+                                                                          Baboy baboy = Baboy(id: id.text,weight: tempWeight,area: tempArea,date: tempDate);
+
+                                                                          BaboyController.set(baboy);
+                                                                          alert(context, title: Text('Successfully Recorded!'));
+
+                                                                        }
+
+                                                                      });
+
+                                                                    });
+                                                                  }
+
+
                                                                 },
                                                               )
                                                             ],
@@ -557,7 +604,20 @@ class _MyHomePageState extends State<MyHomePage> {
                         hint: "count",
                         padding: EdgeInsets.all(10),
                         controller:count ,
-                        keyBoardType: TextInputType.number,)
+                        keyBoardType: TextInputType.number,),
+                      CustomTextButton(
+                        icon: Icon(Icons.list,color: Colors.white,size: 20,),
+                        allRadius: 50,
+                        color: Colors.deepOrangeAccent,
+                        text: "Show records",
+                        width: 150,
+                        onPressed: (){
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const Record()),
+                          );
+                        },
+                      )
                     ],
                   ),
                 ),
