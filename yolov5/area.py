@@ -13,7 +13,6 @@ def getArea(
     ret,thresh = cv2.threshold(imgray,127,255,0)
     
     contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    
     area = 0
     for cn in contours:
         area = cv2.contourArea(cn)

@@ -261,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                 text: "Save",
                                                                 onPressed: (){
                                                                   if(id.text.isEmpty){
-                                                                  alert(context, title: Text('Sorrr!'),content: Text("I cannot give you predection for pig's id.\nPlease you may provide your own best judgment."));
+                                                                  alert(context, title: Text('Sorry!'),content: Text("I cannot give you predection for pig's id.\nPlease you may provide your own best judgment."));
                                                                   }
                                                                   else{
                                                                     alert(context,title: Text('Click OK to continue!')).then((value) {
@@ -327,46 +327,47 @@ class _MyHomePageState extends State<MyHomePage> {
                                                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                       children: [
                                                         // Text("  Pigs",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
-                                                        Text("  Laying",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
-                                                        Text("  Standing",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                                        // Text("  Laying",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
+                                                        Text("Standing pigs",style: GoogleFonts.exo(fontWeight: FontWeight.bold,fontSize: 20),),
                                                       ],
                                                     ),
                                                     Row(
+
                                                       children: [
-                                                        Expanded(
-                                                          child: CarouselSlider(
-                                                            options: CarouselOptions(
-                                                              // enlargeCenterPage: true,
-                                                                enableInfiniteScroll: false,
-                                                                viewportFraction: 0.1,
-                                                                height: MediaQuery. of(context). size. height*0.15,
-                                                                aspectRatio: 0
-                                                            ),
-                                                            items: laying.map((i) {
-                                                              return Column(
-                                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                                children: [
-                                                                  GestureDetector(
-                                                                      onTap: (){
-                                                                        analyzePig(i);
-                                                                      },
-                                                                      child: SizedBox(
-                                                                          child: Image.file(i,height:90,)
-                                                                      )
-                                                                  )
-                                                                ],
-                                                              );
-                                                            }).toList(),
-                                                          ),
-                                                        ),
-                                                        Container(
-                                                          color: Colors.black54,
-                                                          child: SizedBox(
-                                                            width: 2,
-                                                            height:100,
-                                                            child: Center(),
-                                                          ),
-                                                        ),
+                                                        // Expanded(
+                                                        //   child: CarouselSlider(
+                                                        //     options: CarouselOptions(
+                                                        //       // enlargeCenterPage: true,
+                                                        //         enableInfiniteScroll: false,
+                                                        //         viewportFraction: 0.1,
+                                                        //         height: MediaQuery. of(context). size. height*0.15,
+                                                        //         aspectRatio: 0
+                                                        //     ),
+                                                        //     items: laying.map((i) {
+                                                        //       return Column(
+                                                        //         mainAxisAlignment: MainAxisAlignment.center,
+                                                        //         children: [
+                                                        //           GestureDetector(
+                                                        //               onTap: (){
+                                                        //                 analyzePig(i);
+                                                        //               },
+                                                        //               child: SizedBox(
+                                                        //                   child: Image.file(i,height:90,)
+                                                        //               )
+                                                        //           )
+                                                        //         ],
+                                                        //       );
+                                                        //     }).toList(),
+                                                        //   ),
+                                                        // ),
+                                                        // Container(
+                                                        //   color: Colors.black54,
+                                                        //   child: SizedBox(
+                                                        //     width: 2,
+                                                        //     height:100,
+                                                        //     child: Center(),
+                                                        //   ),
+                                                        // ),
                                                         Expanded(
                                                           child: CarouselSlider(
                                                             options: CarouselOptions(
@@ -476,15 +477,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                                                         currentSelectedImageFile = File(path.path+"\\result\\"+i.name);
                                                                         List<FileSystemEntity> filesStanding = [];
                                                                         List<FileSystemEntity> filesLaying = [];
-                                                                        try{
-                                                                          filesLaying = Directory(path.path+"\\result\\crops\\laying").listSync();
-                                                                          filesLaying.forEach((element) {
-                                                                            laying.add(File(element.path));
-                                                                          });
-                                                                          currentSelectedPigFile = laying.first;
-                                                                        }catch(r){
-
-                                                                        }
+                                                                        // try{
+                                                                        //   filesLaying = Directory(path.path+"\\result\\crops\\laying").listSync();
+                                                                        //   filesLaying.forEach((element) {
+                                                                        //     laying.add(File(element.path));
+                                                                        //   });
+                                                                        //   currentSelectedPigFile = laying.first;
+                                                                        // }catch(r){
+                                                                        //
+                                                                        // }
                                                                         try{
                                                                           filesStanding = Directory(path.path+"\\result\\crops\\standing").listSync();
                                                                           filesStanding.forEach((element) {

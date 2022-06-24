@@ -10,8 +10,7 @@ def run(
 ):
     if area<10000:
         return
-    # df = pd.read_csv('magic-data.csv')
-    # df.shape
+
     filename = 'weigh_model.sav'
     loaded_model = pickle.load(open(filename, 'rb'))
 
@@ -19,7 +18,7 @@ def run(
         return slope*area+intercept
 
     weight = calc(loaded_model.coef_, loaded_model.intercept_, area)
-    print(loaded_model.predict([[area]])[0][0]) 
+    print(loaded_model.predict([[area]])[0][0])
 
 def parse_opt():
     parser = argparse.ArgumentParser()
